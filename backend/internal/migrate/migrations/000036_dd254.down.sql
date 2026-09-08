@@ -1,0 +1,6 @@
+ALTER TABLE visit_requests DROP COLUMN IF EXISTS dd_254_id;
+
+DROP TABLE IF EXISTS dd254_user_access;
+DROP TABLE IF EXISTS dd254_forms;
+
+DROP TYPE IF EXISTS dd254_status;

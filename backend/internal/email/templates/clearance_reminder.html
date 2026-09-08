@@ -1,0 +1,21 @@
+{{define "content"}}
+<h2 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#111827;">Clearance investigations coming due</h2>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#374151;">
+  Hi {{.Name}},
+</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#374151;">
+  Personnel in sub-organizations you oversee have clearance investigations approaching their renewal date:
+</p>
+<ul style="margin:0 0 24px;padding:0 0 0 20px;font-size:15px;line-height:1.8;color:#374151;">
+  {{if gt .Overdue 0}}<li><strong style="color:#b91c1c;">{{.Overdue}}</strong> overdue investigation{{if ne .Overdue 1}}s{{end}}</li>{{end}}
+  {{if gt .Due30Days 0}}<li><strong>{{.Due30Days}}</strong> investigation{{if ne .Due30Days 1}}s{{end}} due within 30 days</li>{{end}}
+  {{if gt .Due90Days 0}}<li><strong>{{.Due90Days}}</strong> investigation{{if ne .Due90Days 1}}s{{end}} due within 90 days</li>{{end}}
+</ul>
+<div style="text-align:center;padding:8px 0 16px;">
+  <a href="{{.AppURL}}/app/team" style="display:inline-block;background-color:#2563eb;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:6px;padding:12px 28px;">Open Team in fastFSO</a>
+</div>
+<p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#9ca3af;text-align:center;">
+  Want fewer reminders?
+  <a href="{{.AppURL}}/app/settings" style="color:#6b7280;text-decoration:underline;">Update your email preferences</a>.
+</p>
+{{end}}
