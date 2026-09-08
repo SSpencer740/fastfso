@@ -1,0 +1,7 @@
+project_id      = "fastfso"
+region          = "us-east4"
+environment     = "staging"
+base_domain     = "cloud.fastfso.com"
+public_domain   = "app-staging.fastfso.com"
+container_image = "us-docker.pkg.dev/cloudrun/container/hello:latest"
+db_tier         = "db-g1-small"

@@ -1,0 +1,9 @@
+DROP VIEW IF EXISTS task_user_status;
+DROP VIEW IF EXISTS task_assigned_users;
+DROP TABLE IF EXISTS action_items;
+DROP TABLE IF EXISTS task_uploads;
+DROP TABLE IF EXISTS task_responses;
+DROP TABLE IF EXISTS task_completions;
+DROP TABLE IF EXISTS task_assignment_rules;
+DROP TABLE IF EXISTS task_requirements;
+DROP TABLE IF EXISTS tasks;

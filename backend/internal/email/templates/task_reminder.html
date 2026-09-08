@@ -1,0 +1,22 @@
+{{define "content"}}
+<h2 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#111827;">Items waiting on you</h2>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#374151;">
+  Hi {{.Name}},
+</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#374151;">
+  A quick nudge — you have:
+</p>
+<ul style="margin:0 0 24px;padding:0 0 0 20px;font-size:15px;line-height:1.8;color:#374151;">
+  {{if gt .OverdueTasks 0}}<li><strong style="color:#b91c1c;">{{.OverdueTasks}}</strong> overdue task{{if ne .OverdueTasks 1}}s{{end}}</li>{{end}}
+  {{if gt .DueSoonTasks 0}}<li><strong>{{.DueSoonTasks}}</strong> task{{if ne .DueSoonTasks 1}}s{{end}} due soon</li>{{end}}
+  {{if gt .OverdueDebriefs 0}}<li><strong style="color:#b91c1c;">{{.OverdueDebriefs}}</strong> overdue post-travel debrief{{if ne .OverdueDebriefs 1}}s{{end}}</li>{{end}}
+  {{if gt .DueSoonDebriefs 0}}<li><strong>{{.DueSoonDebriefs}}</strong> post-travel debrief{{if ne .DueSoonDebriefs 1}}s{{end}} due soon</li>{{end}}
+</ul>
+<div style="text-align:center;padding:8px 0 16px;">
+  <a href="{{.AppURL}}/login" style="display:inline-block;background-color:#2563eb;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:6px;padding:12px 28px;">Open fastFSO</a>
+</div>
+<p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#9ca3af;text-align:center;">
+  Want fewer reminders?
+  <a href="{{.AppURL}}/settings" style="color:#6b7280;text-decoration:underline;">Update your email preferences</a>.
+</p>
+{{end}}

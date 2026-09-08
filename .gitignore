@@ -1,0 +1,25 @@
+# backend
+backend/serve
+
+# frontend
+frontend/node_modules/
+frontend/dist/
+
+# e2e
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
+
+# terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+
+# local tool state
+.claude/settings.local.json
+
+# misc
+.DS_Store
+.env
+uploads/
+Branding/FastFSO-BrandPackage-v1.zip

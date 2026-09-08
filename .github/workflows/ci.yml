@@ -1,0 +1,229 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+            infra:
+              - 'infra/**'
+
+  backend-lint:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          working-directory: backend
+          version: v2.8.0
+          install-mode: binary
+
+  backend-test:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+      - run: go build ./...
+      - run: go test ./...
+
+  backend-integration-test:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    env:
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_USER: fastfso
+      DB_PASSWORD: fastfso
+      DB_NAME: fastfso
+      DB_SSLMODE: disable
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: fastfso
+          POSTGRES_PASSWORD: fastfso
+          POSTGRES_DB: fastfso
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+      - run: ./dev.sh up
+      - run: ./dev.sh test-integration
+
+  frontend-lint:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx eslint .
+
+  frontend-build:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  e2e:
+    needs: changes
+    # Disabled: the loginAsAdmin helper doesn't handle the mandatory
+    # /setup-2fa flow, so the suite always times out.
+    if: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_USER: fastfso
+      DB_PASSWORD: fastfso
+      DB_NAME: fastfso
+      DB_SSLMODE: disable
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: fastfso
+          POSTGRES_PASSWORD: fastfso
+          POSTGRES_DB: fastfso
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: frontend/.nvmrc
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+      - name: Install e2e deps
+        working-directory: e2e
+        run: npm ci
+      - name: Install Playwright browsers
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium webkit
+      - name: Run migrations
+        run: ./dev.sh up
+      - name: Seed super-admin
+        run: ./dev.sh seed
+      - name: Run Playwright tests
+        working-directory: e2e
+        run: npx playwright test
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7
+
+  terraform-validate:
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v4
+      - run: terraform fmt -check -recursive
+        working-directory: infra
+      - run: terraform init -backend=false
+        working-directory: infra/environments/global
+      - run: terraform validate
+        working-directory: infra/environments/global
+      - run: terraform init -backend=false
+        working-directory: infra/environments/staging
+      - run: terraform validate
+        working-directory: infra/environments/staging
+      - run: terraform init -backend=false
+        working-directory: infra/environments/prod
+      - run: terraform validate
+        working-directory: infra/environments/prod
+
+  ci-ok:
+    if: always()
+    # e2e is intentionally excluded from the blocking set: the mandatory
+    # /setup-2fa flow breaks loginAsAdmin, so the suite has never passed.
+    # Re-add once the helper handles TOTP enrollment.
+    needs:
+      [
+        backend-lint,
+        backend-test,
+        backend-integration-test,
+        frontend-lint,
+        frontend-build,
+        terraform-validate,
+      ]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            exit 1
+          fi
